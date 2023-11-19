@@ -50,17 +50,7 @@ auto Cartridge::connect() -> void {
 
   rtc.load();
 
-  if(pak->attribute("sm").boolean()) {
-    has.SmartMediaCard = true;
-    smartmediaSlot1.load(node);
-    smartmediaSlot2.load(node);
-
-    smartmedia.debugger.tracer = node->append<Node::Debugger::Tracer::Notification>("SmartMedia", "Cartridge");
-    smartmedia.debugger.tracer->setAutoLineBreak(true);
-    smartmedia.debugger.tracer->setTerminal(false);
-    smartmedia.debugger.tracer->setFile(true);
-    smartmedia.debugger.tracer->setPrefix(true);
-  }
+  smartmedia.load();
 
   isviewer.ram.allocate(64_KiB);
   isviewer.tracer = node->append<Node::Debugger::Tracer::Notification>("ISViewer", "Cartridge");
@@ -77,10 +67,7 @@ auto Cartridge::disconnect() -> void {
   save();
   debugger.unload(node);
 
-  if(has.SmartMediaCard) {
-    smartmediaSlot1.unload();
-    smartmediaSlot2.unload();
-  }
+  smartmedia.unload();
 
   rom.reset();
   ram.reset();
@@ -108,10 +95,7 @@ auto Cartridge::save() -> void {
 
   rtc.save();
 
-  if(has.SmartMediaCard) {
-    smartmedia1.save();
-    smartmedia2.save();
-  }
+  smartmedia.save();
 }
 
 auto Cartridge::power(bool reset) -> void {
@@ -121,12 +105,7 @@ auto Cartridge::power(bool reset) -> void {
   flash.offset = 0;
   isviewer.ram.fill(0);
   rtc.power(reset);
-
-  if(has.SmartMediaCard) {
-    smartmedia.power(reset);
-    smartmedia1.power(reset);
-    smartmedia2.power(reset);
-  }
+  smartmedia.power(reset);
 }
 
 }

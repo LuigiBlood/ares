@@ -73,6 +73,9 @@ struct Cartridge {
   } rtc{*this};
 
   struct SmartMedia : Memory::PI<SmartMedia> {
+    Cartridge& self;
+    SmartMedia(Cartridge &self) : self(self) {}
+
     struct Debugger {
       Node::Debugger::Tracer::Notification tracer;
 
@@ -104,13 +107,16 @@ struct Cartridge {
     struct Drive drive1{smartmedia1};
     struct Drive drive2{smartmedia2};
 
+    auto load() -> void;
+    auto unload() -> void;
+    auto save() -> void;
     auto power(bool reset) -> void;
 
     auto readHalf(u32 address) -> u16;
     auto writeHalf(u32 address, u16 data) -> void;
     auto readWord(u32 address) -> u32;
     auto writeWord(u32 address, u32 data) -> void;
-  } smartmedia;
+  } smartmedia{*this};
 
   struct Debugger {
     //debugger.cpp

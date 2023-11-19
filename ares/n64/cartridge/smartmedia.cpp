@@ -73,8 +73,41 @@ auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
   }
 }
 
+auto Cartridge::SmartMedia::load() -> void {
+  if(self.pak->attribute("sm").boolean()) {
+    self.has.SmartMediaCard = true;
+
+    smartmediaSlot1.load(self.node);
+    smartmediaSlot2.load(self.node);
+
+    debugger.tracer = self.node->append<Node::Debugger::Tracer::Notification>("SmartMedia", "Cartridge");
+    debugger.tracer->setAutoLineBreak(true);
+    debugger.tracer->setTerminal(false);
+    debugger.tracer->setFile(true);
+    debugger.tracer->setPrefix(true);
+  }
+}
+
+auto Cartridge::SmartMedia::unload() -> void {
+  if(!self.has.SmartMediaCard) return;
+
+  smartmediaSlot1.unload();
+  smartmediaSlot2.unload();
+}
+
+auto Cartridge::SmartMedia::save() -> void {
+  if(!self.has.SmartMediaCard) return;
+
+  smartmedia1.save();
+  smartmedia2.save();
+}
 
 auto Cartridge::SmartMedia::power(bool reset) -> void {
+  if(!self.has.SmartMediaCard) return;
+
+  drive1.card.power(reset);
+  drive2.card.power(reset);
+
   drive1.magic_seed = 0xFFF0;
   drive2.magic_seed = 0xC000;
 }
