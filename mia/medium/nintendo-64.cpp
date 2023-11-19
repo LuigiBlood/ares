@@ -28,6 +28,7 @@ auto Nintendo64::load(string location) -> bool {
   pak->setAttribute("rpak",   (bool)document["game/rumblepak"]);
   pak->setAttribute("tpak",   (bool)document["game/transferpak"]);
   pak->setAttribute("cic",    document["game/board/cic"].string());
+  pak->setAttribute("sm",     (bool)document["game/smartmedia"]);
   pak->setAttribute("dd",     (bool)document["game/dd"]);
   pak->append("manifest.bml", manifest);
   pak->append("program.rom",  rom);
@@ -155,6 +156,7 @@ auto Nintendo64::analyze(vector<u8>& data) -> string {
   bool rpak = false;                 //Rumble Pak
   bool tpak = false;                 //Transfer Pak
   bool rtc  = false;                 //RTC
+  bool sm   = false;                 //SmartMedia Card
   bool dd   = id.beginsWith("C");    //64DD
 
   //512B EEPROM
@@ -565,6 +567,9 @@ auto Nintendo64::analyze(vector<u8>& data) -> string {
   if(id == "NOH") {rpak = true; tpak=true;}                              //Transformers Beast Wars - Transmetals
   if(id == "NWF") {rpak = true;}                                         //Wheel of Fortune
 
+  //SmartMedia Card Hardware
+  if(id == "NMP") {sm = true;}                                           //Mario no Photopi (J)
+
   //Special case for save type in International Track & Field
   if(id == "N3H") { 
     if(region_code == 'J') {sram = 32_KiB;}                              //Ganbare! Nippon! Olympics 2000
@@ -685,6 +690,8 @@ auto Nintendo64::analyze(vector<u8>& data) -> string {
   s += "  rumblepak\n";
   if(tpak)
   s += "  transferpak\n";
+  if(sm)
+  s += "  smartmedia\n";
   if(dd)
   s += "  dd\n";
   if(revision < 4) {

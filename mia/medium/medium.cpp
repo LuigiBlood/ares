@@ -22,6 +22,7 @@ namespace Media {
   #include "neo-geo-pocket-color.cpp"
   #include "nintendo-64.cpp"
   #include "nintendo-64dd.cpp"
+  #include "smartmedia.cpp"
   #include "pc-engine.cpp"
   #include "pc-engine-cd.cpp"
   #include "saturn.cpp"
@@ -65,6 +66,7 @@ auto Medium::create(string name) -> shared_pointer<Pak> {
   if(name == "Neo Geo Pocket Color") return new Media::NeoGeoPocketColor;
   if(name == "Nintendo 64") return new Media::Nintendo64;
   if(name == "Nintendo 64DD") return new Media::Nintendo64DD;
+  if(name == "SmartMedia") return new Media::SmartMedia;
   if(name == "PC Engine") return new Media::PCEngine;
   if(name == "PC Engine CD") return new Media::PCEngineCD;
   if(name == "Saturn") return new Media::Saturn;

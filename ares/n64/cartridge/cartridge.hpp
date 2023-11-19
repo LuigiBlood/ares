@@ -72,6 +72,46 @@ struct Cartridge {
     auto write(u2 block, n8 *data) -> void;
   } rtc{*this};
 
+  struct SmartMedia : Memory::PI<SmartMedia> {
+    struct Debugger {
+      Node::Debugger::Tracer::Notification tracer;
+
+      auto io(bool mode, u32 address, u32 data) -> void;
+    } debugger;
+
+    struct Drive {
+      ares::Nintendo64::SmartMediaCard& card;
+      Drive(ares::Nintendo64::SmartMediaCard &card) : card(card) {}
+
+      struct {
+        n1 busy_rdwr;
+        n1 busy_serial;
+        n1 busy_command;
+
+        n1 disableEcc;
+        n1 cardBig;     //64MB and above
+        n1 cardSmall;   //2MB and below
+      } status;
+
+      n16 magic_seed;
+
+      n1 unlock;
+
+      auto read(u32 address) -> u16;
+      auto write(u32 address, u16 data) -> void;
+    };
+
+    struct Drive drive1{smartmedia1};
+    struct Drive drive2{smartmedia2};
+
+    auto power(bool reset) -> void;
+
+    auto readHalf(u32 address) -> u16;
+    auto writeHalf(u32 address, u16 data) -> void;
+    auto readWord(u32 address) -> u32;
+    auto writeWord(u32 address, u32 data) -> void;
+  } smartmedia;
+
   struct Debugger {
     //debugger.cpp
     auto load(Node::Object) -> void;
@@ -82,8 +122,14 @@ struct Cartridge {
       Node::Debugger::Memory ram;
       Node::Debugger::Memory eeprom;
       Node::Debugger::Memory flash;
+      Node::Debugger::Memory smartmedia;
     } memory;
   } debugger;
+
+  struct Has {
+    boolean SmartMediaCard;
+  } has;
+
 
   auto title() const -> string { return information.title; }
   auto region() const -> string { return information.region; }

@@ -8,6 +8,7 @@ Cartridge& cartridge = cartridgeSlot.cartridge;
 #include "rtc.cpp"
 #include "joybus.cpp"
 #include "isviewer.cpp"
+#include "smartmedia.cpp"
 #include "debugger.cpp"
 #include "serialization.cpp"
 
@@ -22,6 +23,8 @@ auto Cartridge::connect() -> void {
   information.title  = pak->attribute("title");
   information.region = pak->attribute("region");
   information.cic    = pak->attribute("cic");
+
+  has.SmartMediaCard = false;
 
   if(auto fp = pak->read("program.rom")) {
     rom.allocate(fp->size());
@@ -47,6 +50,18 @@ auto Cartridge::connect() -> void {
 
   rtc.load();
 
+  if(pak->attribute("sm").boolean()) {
+    has.SmartMediaCard = true;
+    smartmediaSlot1.load(node);
+    smartmediaSlot2.load(node);
+
+    smartmedia.debugger.tracer = node->append<Node::Debugger::Tracer::Notification>("SmartMedia", "Cartridge");
+    smartmedia.debugger.tracer->setAutoLineBreak(true);
+    smartmedia.debugger.tracer->setTerminal(false);
+    smartmedia.debugger.tracer->setFile(true);
+    smartmedia.debugger.tracer->setPrefix(true);
+  }
+
   isviewer.ram.allocate(64_KiB);
   isviewer.tracer = node->append<Node::Debugger::Tracer::Notification>("ISViewer", "Cartridge");
   isviewer.tracer->setAutoLineBreak(false);
@@ -61,6 +76,12 @@ auto Cartridge::disconnect() -> void {
   if(!node) return;
   save();
   debugger.unload(node);
+
+  if(has.SmartMediaCard) {
+    smartmediaSlot1.unload();
+    smartmediaSlot2.unload();
+  }
+
   rom.reset();
   ram.reset();
   eeprom.reset();
@@ -86,6 +107,11 @@ auto Cartridge::save() -> void {
   }
 
   rtc.save();
+
+  if(has.SmartMediaCard) {
+    smartmedia1.save();
+    smartmedia2.save();
+  }
 }
 
 auto Cartridge::power(bool reset) -> void {
@@ -95,6 +121,12 @@ auto Cartridge::power(bool reset) -> void {
   flash.offset = 0;
   isviewer.ram.fill(0);
   rtc.power(reset);
+
+  if(has.SmartMediaCard) {
+    smartmedia.power(reset);
+    smartmedia1.power(reset);
+    smartmedia2.power(reset);
+  }
 }
 
 }

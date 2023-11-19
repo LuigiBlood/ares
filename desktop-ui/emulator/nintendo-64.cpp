@@ -8,6 +8,7 @@ struct Nintendo64 : Emulator {
   shared_pointer<mia::Pak> gamepad;
   shared_pointer<mia::Pak> disk;
   shared_pointer<mia::Pak> gb;
+  shared_pointer<mia::Pak> sm1, sm2;
   u32 regionID = 0;
   Timer diskInsertTimer;
 };
@@ -106,8 +107,28 @@ auto Nintendo64::load() -> bool {
   if(!ares::Nintendo64::load(root, {"[Nintendo] ", name, " (", region, ")"})) return false;
 
   if(auto port = root->find<ares::Node::Port>("Cartridge Slot")) {
-    port->allocate();
+    auto cartridge = port->allocate();
     port->connect();
+
+    if(auto slot = cartridge->find<ares::Node::Port>("SmartMedia Card Slot 1")) {
+      sm1 = mia::Medium::create("SmartMedia");
+      if(sm1->load(Emulator::load(sm1, configuration.game))) {
+        slot->allocate();
+        slot->connect();
+      } else {
+        sm1.reset();
+      }
+    }
+
+    if(auto slot = cartridge->find<ares::Node::Port>("SmartMedia Card Slot 2")) {
+      sm2 = mia::Medium::create("SmartMedia");
+      if(sm2->load(Emulator::load(sm2, configuration.game))) {
+        slot->allocate();
+        slot->connect();
+      } else {
+        sm2.reset();
+      }
+    }
   }
 
   if(auto port = root->find<ares::Node::Port>("Nintendo 64DD/Disk Drive")) {
@@ -195,6 +216,8 @@ auto Nintendo64::save() -> bool {
   if(disk) disk->save(disk->location);
   if(gamepad) gamepad->save("save.pak", ".pak", game->location);
   if(gb) gb->save(gb->location);
+  if(sm1) sm1->save(sm1->location);
+  if(sm2) sm2->save(sm2->location);
   return true;
 }
 
@@ -205,5 +228,13 @@ auto Nintendo64::pak(ares::Node::Object node) -> shared_pointer<vfs::directory> 
   if(node->name() == "Game Boy Cartridge") return gb->pak;
   if(node->name() == "Game Boy Color Cartridge") return gb->pak;
   if(node->name() == "Gamepad") return gamepad->pak;
+  if(node->name() == "SmartMedia Card") {
+    if(auto parent = node->parent()) {
+      if(auto port = parent.acquire()) {
+        if(port->name() == "SmartMedia Card Slot 1") return sm1->pak;
+        if(port->name() == "SmartMedia Card Slot 2") return sm2->pak;
+      }
+    }
+  }
   return {};
 }

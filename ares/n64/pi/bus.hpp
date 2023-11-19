@@ -37,9 +37,16 @@ inline auto PI::busRead(u32 address) -> u32 {
     return unmapped;
   }
   if(address <= 0x07ff'ffff) return unmapped;
-  if(address <= 0x0fff'ffff) {
+  if(address <= 0x0fe6'ffff) {
     if(cartridge.ram  ) return cartridge.ram.read<Size>(address);
     if(cartridge.flash) return cartridge.flash.read<Size>(address);
+    return unmapped;
+  }
+  if(address <= 0x0fe7'017f) {
+    if(cartridge.has.SmartMediaCard) return cartridge.smartmedia.read<Size>(address);
+    return unmapped;
+  }
+  if(address <= 0x0fff'ffff) {
     return unmapped;
   }
   if(address <= 0x13fe'ffff) {
@@ -87,11 +94,16 @@ inline auto PI::busWrite(u32 address, u32 data) -> void {
     return;
   }
   if(address <= 0x07ff'ffff) return;
-  if(address <= 0x0fff'ffff) {
+  if(address <= 0x0fe6'ffff) {
     if(cartridge.ram  ) return cartridge.ram.write<Size>(address, data);
     if(cartridge.flash) return cartridge.flash.write<Size>(address, data);
     return;
   }
+  if(address <= 0x0fe7'017f) {
+    if(cartridge.has.SmartMediaCard) return cartridge.smartmedia.write<Size>(address, data);
+    return;
+  }
+  if(address <= 0x0fff'ffff) return;
   if(address <= 0x13fe'ffff) {
     if(cartridge.rom  ) return cartridge.rom.write<Size>(address, data);
     return;

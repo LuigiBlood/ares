@@ -1,0 +1,1 @@
+#include "smartmedia/smartmedia.hpp"

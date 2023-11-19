@@ -85,6 +85,7 @@ namespace ares::Nintendo64 {
   #include <n64/accuracy.hpp>
   #include <n64/memory/memory.hpp>
   #include <n64/system/system.hpp>
+  #include <n64/slot/slot.hpp>
   #include <n64/cartridge/cartridge.hpp>
   #include <n64/cic/cic.hpp>
   #include <n64/controller/controller.hpp>
