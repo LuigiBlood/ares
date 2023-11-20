@@ -43,15 +43,36 @@ auto SmartMedia::save(string location) -> bool {
 }
 
 auto SmartMedia::analyze(vector<u8>& flash) -> string {
-  if(flash.size() >= 0x1080000) {
-    print("[mia] Loading flash failed. Maximum expected flash size is 17301504 (0x1080000) bytes. Flash size: ", flash.size(), " (0x", hex(flash.size()), ") bytes.\n");;
+  if(flash.size() < 0x108000*1) {
+    print("[mia] Loading flash failed. Minimum expected flash size is 1081344 (0x108000) bytes. Flash size: ", flash.size(), " (0x", hex(flash.size()), ") bytes.\n");
     return {};
   }
+  if(flash.size() > 0x108000*16) {
+    print("[mia] Loading flash failed. Maximum expected flash size is 17301504 (0x1080000) bytes. Flash size: ", flash.size(), " (0x", hex(flash.size()), ") bytes.\n");
+    return {};
+  }
+
+  bool check = false;
+  check |= (flash.size() == 0x108000*1);
+  check |= (flash.size() == 0x108000*2);
+  check |= (flash.size() == 0x108000*4);
+  check |= (flash.size() == 0x108000*8);
+  check |= (flash.size() == 0x108000*16);
+  if(!check) {
+    print("[mia] Loading flash failed. Expected flash size is a power of two times 1081344 (0x108000) bytes. Flash size: ", flash.size(), " (0x", hex(flash.size()), ") bytes.\n");
+    return {};
+  }
+
+  auto type = "Flash";
 
   string s;
   s += "game\n";
   s +={"  name:  ", Medium::name(location), "\n"};
   s +={"  title: ", Medium::name(location), "\n"};
-
+  s += "  board\n";
+  s += "    memory\n";
+  s +={"      type: ", type, "\n"};
+  s +={"      size: 0x", hex(flash.size()), "\n"};
+  s += "      content: Save\n";
   return s;
 }

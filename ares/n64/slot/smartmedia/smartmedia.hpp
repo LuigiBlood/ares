@@ -5,13 +5,9 @@ struct SmartMediaCard {
   Memory::Writable flash;
   Memory::Writable buffer;
 
-  auto title() const -> string { return information.title; }
+  n1 readonly = 0;
 
-  struct {
-    n1 fail;
-    n1 ready;
-    n1 disabledWriteProtect;
-  } status;
+  auto title() const -> string { return information.title; }
 
   struct Command { enum : u8 {
       ReadPage0          = 0x00,  //read mode (page 0)
@@ -51,6 +47,15 @@ private:
 
   enum class PointerMode : u32 { Normal, PageInfo };
   PointerMode pointerMode = PointerMode::Normal;
+
+  struct {
+    n1 fail;
+    n1 ready;
+    n1 disabledWriteProtect;
+  } status;
+
+  u8 manufacturer;
+  u8 deviceType;
 
   u32 address;
   u32 sectorAddress;

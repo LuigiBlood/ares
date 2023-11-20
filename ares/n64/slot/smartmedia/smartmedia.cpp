@@ -21,9 +21,27 @@ auto SmartMediaCard::connect() -> void {
   }
 
   if(flash) {
-    /*pageSize = 528;
-    if(flash.size() <= 0x210000) pageSize = 264;*/
-    pageSize = 264;
+    manufacturer = 0x98; //Toshiba
+    if(flash.size == 0x108000*1) {
+      pageSize = 256+8;
+      deviceType = 0xEC;
+    }
+    if(flash.size == 0x108000*2) {
+      pageSize = 256+8;
+      deviceType = 0xEA;
+    }
+    if(flash.size == 0x108000*4) {
+      pageSize = 512+16;
+      deviceType = 0xE3;
+    }
+    if(flash.size == 0x108000*8) {
+      pageSize = 512+16;
+      deviceType = 0xED;
+    }
+    if(flash.size == 0x108000*16) {
+      pageSize = 512+16;
+      deviceType = 0x73;
+    }
   }
 }
 

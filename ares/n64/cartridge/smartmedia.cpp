@@ -88,6 +88,7 @@ auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
   if(address == 0) {
     data = 0x43;
     data.bit(2) = card.flash ? 0 : 1;
+    data.bit(3) = card.readonly;
     data.bit(4) = status.busy_rdwr;
     data.bit(5) = status.busy_serial;
     data.bit(7) = status.busy_command;

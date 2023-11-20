@@ -14,8 +14,8 @@ auto SmartMediaCard::read() -> u8 {
       break;
     case Mode::ReadId:
       if(addressClock!=1) break;
-      if(address==0) data = 0x98; //Manufacturer: Toshiba
-      if(address==1) data = 0xEA; //Device Type:  2MB 3.3v (To be changed)
+      if(address==0) data = manufacturer;
+      if(address==1) data = deviceType;
       if(address <2) address++;
       break;
     case Mode::Status:
