@@ -57,9 +57,34 @@ auto Cartridge::SmartMedia::Debugger::io(bool mode, u32 address, u32 data) -> vo
 }
 
 //Drive
+auto Cartridge::SmartMedia::Drive::setMagic(u16 seed) -> void {
+  magic_seed = seed;
+
+  u32 j, k, v;
+  j = seed << 15;
+  k = 0x47D78000;
+  v = 0x40000000;
+  while(v > 0x4001) {
+    if (j&v) j ^= k;
+    v >>= 1;
+    k >>= 1;
+  }
+  j <<= 1;
+  k = 1;
+  v = 0x8000;
+  while(v >= 2) {
+    if (j&v) k = 1 - k;
+    v >>= 1;
+  }
+  j |= k;
+
+  magic_response = j & 0xffff;
+}
+
 auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
   n16 data = 0;
 
+  if(unlock == 3) {
   if(address == 0) {
     data = 0x43;
     data.bit(2) = card.flash ? 0 : 1;
@@ -84,11 +109,12 @@ auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
   }
   if(address == 7) {
   }
+  }
   if(address == 8) {
-    data.bit(0,7) = magic_seed.bit(0,7);
+    if(magic_unlock == 2) data.bit(0,7) = magic_seed.bit(0,7);
   }
   if(address == 9) {
-    data.bit(0,7) = magic_seed.bit(8,15);
+    if(magic_unlock == 2) data.bit(0,7) = magic_seed.bit(8,15);
   }
   if(address == 15) {
   }
@@ -99,6 +125,7 @@ auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
 auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
   n16 value = data;
 
+  if(unlock == 3) {
   if(address == 0) {
     status.disableEcc = value.bit(5);
     status.cardBig =    value.bit(6);
@@ -121,14 +148,19 @@ auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
   }
   if(address == 7) {
   }
+  }
   if(address == 8) {
     //magic_response
+    if(magic_unlock == 2 && magic_response.bit(0,7) == value.bit(0,7)) unlock.bit(0) = 1;
   }
   if(address == 9) {
     //magic_response
+    if(magic_unlock == 2 && magic_response.bit(8,15) == value.bit(0,7)) unlock.bit(1) = 1;
   }
   if(address == 15) {
-    unlock = 1;
+    if(value == 1 && magic_unlock == 0) magic_unlock++;
+    else if(value == 0 && magic_unlock == 1) magic_unlock++;
+    else magic_unlock = 0;
   }
 }
 
@@ -162,8 +194,13 @@ auto Cartridge::SmartMedia::power(bool reset) -> void {
   drive1.card.power(reset);
   drive2.card.power(reset);
 
-  drive1.magic_seed = 0xFFF0;
-  drive2.magic_seed = 0xC000;
+  drive1.magic_unlock = 0;
+  drive2.magic_unlock = 0;
+  drive1.unlock = 0;
+  drive2.unlock = 0;
+
+  drive1.setMagic(0xFFF0);
+  drive2.setMagic(0xC000);
 }
 
 //read/write

@@ -96,10 +96,13 @@ struct Cartridge {
         n1 cardSmall;   //2MB and below
       } status;
 
+      n2 magic_unlock;
       n16 magic_seed;
+      n16 magic_response;
 
-      n1 unlock;
+      n2 unlock;
 
+      auto setMagic(u16 seed) -> void;
       auto read(u32 address) -> u16;
       auto write(u32 address, u16 data) -> void;
     };
