@@ -1,3 +1,62 @@
+//Debugger
+auto Cartridge::SmartMedia::Debugger::io(bool mode, u32 address, u32 data) -> void {
+  address = (address & 0x1ff) >> 2;
+  if(address >= 0x40) address -= 0x3B;
+
+  static const vector<string> registerNames = {
+    "PTP_ENC_HW4",
+    "PTP_ENC_HW3",
+    "PTP_ENC_HW2",
+    "PTP_ENC_HW1",
+    "PTP_ENC_CMD",
+    "PTP_DRIVE1_STATUS",
+    "PTP_DRIVE1_CMD",
+    "PTP_DRIVE1_ADDR",
+    "PTP_DRIVE1_DATA",
+    "PTP_DRIVE1_ECC_PAGE_HI",
+    "PTP_DRIVE1_ECC_PAGE_LO",
+    "PTP_DRIVE1_ECC_ERROR_HI",
+    "PTP_DRIVE1_ECC_ERROR_LO",
+    "PTP_DRIVE1_MAGIC_LO",
+    "PTP_DRIVE1_MAGIC_HI",
+    "PTP_DRIVE1_UNKNOWN",
+    "PTP_DRIVE1_UNKNOWN",
+    "PTP_DRIVE1_UNKNOWN",
+    "PTP_DRIVE1_UNKNOWN",
+    "PTP_DRIVE1_UNKNOWN",
+    "PTP_DRIVE1_UNLOCK",
+    "PTP_DRIVE2_STATUS",
+    "PTP_DRIVE2_CMD",
+    "PTP_DRIVE2_ADDR",
+    "PTP_DRIVE2_DATA",
+    "PTP_DRIVE2_ECC_PAGE_HI",
+    "PTP_DRIVE2_ECC_PAGE_LO",
+    "PTP_DRIVE2_ECC_ERROR_HI",
+    "PTP_DRIVE2_ECC_ERROR_LO",
+    "PTP_DRIVE2_MAGIC_LO",
+    "PTP_DRIVE2_MAGIC_HI",
+    "PTP_DRIVE2_UNKNOWN",
+    "PTP_DRIVE2_UNKNOWN",
+    "PTP_DRIVE2_UNKNOWN",
+    "PTP_DRIVE2_UNKNOWN",
+    "PTP_DRIVE2_UNKNOWN",
+    "PTP_DRIVE2_UNLOCK",
+  };
+
+  if(unlikely(tracer->enabled())) {
+    string message;
+    string name = registerNames(address, "PTP_UNKNOWN");
+    if(mode == Read) {
+      message = {name.split("|").first(), " => ", hex(data, 8L)};
+    }
+    if(mode == Write) {
+      message = {name.split("|").last(), " <= ", hex(data, 8L)};
+    }
+    tracer->notify(message);
+  }
+}
+
+//Drive
 auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
   n16 data = 0;
 
@@ -73,6 +132,7 @@ auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
   }
 }
 
+//SmartMedia
 auto Cartridge::SmartMedia::load() -> void {
   if(self.pak->attribute("sm").boolean()) {
     self.has.SmartMediaCard = true;
@@ -89,22 +149,16 @@ auto Cartridge::SmartMedia::load() -> void {
 }
 
 auto Cartridge::SmartMedia::unload() -> void {
-  if(!self.has.SmartMediaCard) return;
-
   smartmediaSlot1.unload();
   smartmediaSlot2.unload();
 }
 
 auto Cartridge::SmartMedia::save() -> void {
-  if(!self.has.SmartMediaCard) return;
-
   smartmedia1.save();
   smartmedia2.save();
 }
 
 auto Cartridge::SmartMedia::power(bool reset) -> void {
-  if(!self.has.SmartMediaCard) return;
-
   drive1.card.power(reset);
   drive2.card.power(reset);
 
@@ -112,64 +166,7 @@ auto Cartridge::SmartMedia::power(bool reset) -> void {
   drive2.magic_seed = 0xC000;
 }
 
-auto Cartridge::SmartMedia::Debugger::io(bool mode, u32 address, u32 data) -> void {
-  address = (address & 0x1ff) >> 2;
-  if(address >= 0x40) address -= 0x3B;
-
-  static const vector<string> registerNames = {
-    "PTP_ENC_HW4",
-    "PTP_ENC_HW3",
-    "PTP_ENC_HW2",
-    "PTP_ENC_HW1",
-    "PTP_ENC_CMD",
-    "PTP_DRIVE1_STATUS",
-    "PTP_DRIVE1_CMD",
-    "PTP_DRIVE1_ADDR",
-    "PTP_DRIVE1_DATA",
-    "PTP_DRIVE1_ECC_PAGE_HI",
-    "PTP_DRIVE1_ECC_PAGE_LO",
-    "PTP_DRIVE1_ECC_ERROR_HI",
-    "PTP_DRIVE1_ECC_ERROR_LO",
-    "PTP_DRIVE1_MAGIC_LO",
-    "PTP_DRIVE1_MAGIC_HI",
-    "PTP_DRIVE1_UNKNOWN",
-    "PTP_DRIVE1_UNKNOWN",
-    "PTP_DRIVE1_UNKNOWN",
-    "PTP_DRIVE1_UNKNOWN",
-    "PTP_DRIVE1_UNKNOWN",
-    "PTP_DRIVE1_UNLOCK",
-    "PTP_DRIVE2_STATUS",
-    "PTP_DRIVE2_CMD",
-    "PTP_DRIVE2_ADDR",
-    "PTP_DRIVE2_DATA",
-    "PTP_DRIVE2_ECC_PAGE_HI",
-    "PTP_DRIVE2_ECC_PAGE_LO",
-    "PTP_DRIVE2_ECC_ERROR_HI",
-    "PTP_DRIVE2_ECC_ERROR_LO",
-    "PTP_DRIVE2_MAGIC_LO",
-    "PTP_DRIVE2_MAGIC_HI",
-    "PTP_DRIVE2_UNKNOWN",
-    "PTP_DRIVE2_UNKNOWN",
-    "PTP_DRIVE2_UNKNOWN",
-    "PTP_DRIVE2_UNKNOWN",
-    "PTP_DRIVE2_UNKNOWN",
-    "PTP_DRIVE2_UNLOCK",
-  };
-
-  if(unlikely(tracer->enabled())) {
-    string message;
-    string name = registerNames(address, "PTP_UNKNOWN");
-    if(mode == Read) {
-      message = {name.split("|").first(), " => ", hex(data, 8L)};
-    }
-    if(mode == Write) {
-      message = {name.split("|").last(), " <= ", hex(data, 8L)};
-    }
-    tracer->notify(message);
-  }
-}
-
-
+//read/write
 auto Cartridge::SmartMedia::readHalf(u32 address) -> u16 {
   if((address&2)==0) return 0;
   address = (address & 0x1ff) >> 2;
