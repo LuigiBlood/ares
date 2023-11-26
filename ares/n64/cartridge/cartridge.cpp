@@ -8,9 +8,9 @@ Cartridge& cartridge = cartridgeSlot.cartridge;
 #include "rtc.cpp"
 #include "joybus.cpp"
 #include "isviewer.cpp"
-#include "smartmedia.cpp"
 #include "debugger.cpp"
 #include "serialization.cpp"
+#include "smartmedia/smartmedia.cpp"
 
 auto Cartridge::allocate(Node::Port parent) -> Node::Peripheral {
   return node = parent->append<Node::Peripheral>(string{system.name(), " Cartridge"});
