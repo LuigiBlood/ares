@@ -8,7 +8,7 @@ auto SmartMediaCard::read() -> u8 {
         if((address % pageSize) == 0) {
           // go to next page info
           address += 256;
-          if(pageSize == 528) address += 256;
+          if(pageSize == 512+16) address += 256;
         }
       }
       break;
@@ -43,6 +43,7 @@ auto SmartMediaCard::write(u8 value, bool cmd_latch, bool addr_latch) -> void {
         mode = Mode::Read;
         break;
       case Command::ReadPage1:
+        if(pageSize == 256+8) break;
         pointerMode = PointerMode::Normal;
         sectorAddress = 256;
         address = sectorAddress;
@@ -52,7 +53,7 @@ auto SmartMediaCard::write(u8 value, bool cmd_latch, bool addr_latch) -> void {
       case Command::ReadPageInfo:
         pointerMode = PointerMode::PageInfo;
         sectorAddress = 256;
-        if(pageSize==528) sectorAddress = 512;
+        if(pageSize==512+16) sectorAddress = 512;
         address = sectorAddress;
         addressClock = 0;
         mode = Mode::Read;
@@ -63,12 +64,14 @@ auto SmartMediaCard::write(u8 value, bool cmd_latch, bool addr_latch) -> void {
         mode = Mode::ReadId;
         break;
       case Command::WritePageBuffer:
+        if(readonly) break;
         address = sectorAddress;
         addressClock = 0;
         bufferAddress = 0;
         mode = Mode::Write;
         break;
       case Command::WritePageConfirm:
+        if(readonly) break;
         if(mode == Mode::Write) {
           for(u32 i : range(bufferAddress)) {
             flash.write<Byte>(address++, buffer.read<Byte>(i));
@@ -87,11 +90,13 @@ auto SmartMediaCard::write(u8 value, bool cmd_latch, bool addr_latch) -> void {
         }
         break;
       case Command::EraseBlock:
+        if(readonly) break;
         address = 0;
         addressClock = 0;
         mode = Mode::Erase;
         break;
       case Command::EraseBlockConfirm:
+        if(readonly) break;
         if(mode == Mode::Erase) {
           for(u32 i : range(pageSize * 16)) {
             flash.write<Byte>(address + i, 0xff);
@@ -153,8 +158,9 @@ auto SmartMediaCard::write(u8 value, bool cmd_latch, bool addr_latch) -> void {
   switch(mode) {
     case Mode::Write:
       //write to buffer
-      if(addressClock != 3) return;
-      if(bufferAddress >= pageSize) return;
+      if(readonly) break;
+      if(addressClock != 3) break;
+      if(bufferAddress >= pageSize) break;
       buffer.write<Byte>(bufferAddress++, value);
       break;
   }
