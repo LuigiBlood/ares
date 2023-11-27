@@ -97,14 +97,10 @@ struct Cartridge {
         n1 cardBig;     //64MB and above
         n1 cardSmall;   //2MB and below
 
-        //working registers for ecc calculation
         n1 command_clock;
         u8 address_clock;
         u16 address;
 
-        n24 ecc_lo_calc;
-        n24 ecc_hi_calc;
-        
         n24 ecc_lo_compare;
         n24 ecc_hi_compare;
 
@@ -113,7 +109,9 @@ struct Cartridge {
         u8 ecc_hi_addr;
         u8 ecc_lo_bit;
         u8 ecc_hi_bit;
+      } error;
 
+      struct EccHardware {
         const u8 ecc_table[256] = {
           0x00, 0x55, 0x56, 0x03, 0x59, 0x0C, 0x0F, 0x5A, 0x5A, 0x0F, 0x0C, 0x59, 0x03, 0x56, 0x55, 0x00,
           0x65, 0x30, 0x33, 0x66, 0x3C, 0x69, 0x6A, 0x3F, 0x3F, 0x6A, 0x69, 0x3C, 0x66, 0x33, 0x30, 0x65,
@@ -132,7 +130,24 @@ struct Cartridge {
           0x65, 0x30, 0x33, 0x66, 0x3C, 0x69, 0x6A, 0x3F, 0x3F, 0x6A, 0x69, 0x3C, 0x66, 0x33, 0x30, 0x65,
           0x00, 0x55, 0x56, 0x03, 0x59, 0x0C, 0x0F, 0x5A, 0x5A, 0x0F, 0x0C, 0x59, 0x03, 0x56, 0x55, 0x00
           };
-      } error;
+        
+        u16 address;
+        n24 calc;
+
+        u8 eccAddr;
+        u8 eccBit;
+        
+        auto reset() -> void;
+        auto input(u8 data) -> void;
+        auto eccArea() -> n24;
+
+        auto correct(n24 eccCompare) -> void;
+        auto addr() -> u8;
+        auto bit() -> u8;
+      };
+
+      struct EccHardware ecc_lo{};
+      struct EccHardware ecc_hi{};
 
       n2 magic_unlock;
       n16 magic_seed;

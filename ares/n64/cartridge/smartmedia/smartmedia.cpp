@@ -1,5 +1,6 @@
 #include "debugger.cpp"
 #include "drive.cpp"
+#include "error.cpp"
 
 auto Cartridge::SmartMedia::unload() -> void {
   smartmediaSlot1.unload();

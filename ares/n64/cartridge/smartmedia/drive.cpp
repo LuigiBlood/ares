@@ -43,24 +43,13 @@ auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
   if(address == 3) {
     data = card.read();
     if(!error.disableEcc && error.command_clock) {
-      //do ecc calc
       if(error.address < 256) {
-        auto temp = error.ecc_table[(u8)data];
-        error.ecc_lo_calc.bit(2,7) ^= (temp & 0x3f);
-        if((temp & 0x40) != 0) {
-          error.ecc_lo_calc.bit(8,15) ^= error.address;
-          error.ecc_lo_calc.bit(16,23) ^= ~error.address;
-        }
+        ecc_lo.input(data);
       }
 
       if((error.address >= error.cardSmall ? 256+8 : 256)
       && (error.address <  error.cardSmall ? 512+8 : 512)) {
-        auto temp = error.ecc_table[(u8)data];
-        error.ecc_hi_calc.bit(2,7) ^= (temp & 0x3f);
-        if((temp & 0x40) != 0) {
-          error.ecc_hi_calc.bit(8,15) ^= (error.address - error.cardSmall ? 256+8 : 256);
-          error.ecc_hi_calc.bit(16,23) ^= ~(error.address - error.cardSmall ? 256+8 : 256);
-        }
+        ecc_hi.input(data);
       }
 
       if(error.address == 520) error.ecc_hi_compare.bit(8,15) = data;
@@ -74,65 +63,17 @@ auto Cartridge::SmartMedia::Drive::read(u32 address) -> u16 {
       error.address++;
 
       if(error.address == 528) {
+        ecc_lo.correct(error.ecc_lo_compare);
+        error.ecc_lo_addr = ecc_lo.addr();
+        error.ecc_lo_bit = ecc_lo.bit();
+
+        ecc_hi.correct(error.ecc_hi_compare);
+        error.ecc_hi_addr = ecc_hi.addr();
+        error.ecc_hi_bit = ecc_hi.bit();
+
         error.address = 0;
-
-        //do compare
-        n24 temp_hi, temp_lo = 0;
-        //convert
-        for(int i : range(8)) {
-          temp_hi.bit(23 - (i * 2) - 0) = ~error.ecc_hi_calc.bit(15 - i);
-          temp_hi.bit(23 - (i * 2) - 1) = ~error.ecc_hi_calc.bit(23 - i);
-
-          temp_lo.bit(23 - (i * 2) - 0) = ~error.ecc_lo_calc.bit(15 - i);
-          temp_lo.bit(23 - (i * 2) - 1) = ~error.ecc_lo_calc.bit(23 - i);
-        }
-        temp_hi.bit(0,7) = ~error.ecc_hi_calc.bit(0,7);
-        temp_lo.bit(0,7) = ~error.ecc_lo_calc.bit(0,7);
-
-        //error.ecc_lo_addr = temp_lo.bit(16,23);
-        //error.ecc_hi_addr = temp_lo.bit(8,15);
-        
-        //attempt ecc (hi)
-        temp_hi ^= error.ecc_hi_compare;
-        if(temp_hi == 0) {
-          //no problem
-          error.ecc_hi_addr = 0;
-          error.ecc_hi_bit = 0;
-        } else if(((temp_hi ^ (temp_hi>>1)) & 0x555554) == 0x555554) {
-          //correctable
-          n8 addr = 0;
-          for (int i : range(8))
-            if(temp_hi.bit(23 - (i * 2))) addr.bit(7 - i) = 1;
-          n8 bit = 0;
-          for (int i : range(3))
-            if(temp_hi.bit(7 - (i * 2))) bit.bit(2 - i) = 1;
-          error.ecc_hi_addr = (u8)addr;
-          error.ecc_hi_bit = (u8)bit;
-        } else {
-          error.ecc_hi_addr = 0xff;
-          error.ecc_hi_bit = 0xff;
-        }
-
-        //attempt ecc (lo)
-        temp_lo ^= error.ecc_lo_compare;
-        if(temp_lo == 0) {
-          //no problem
-          error.ecc_lo_addr = 0;
-          error.ecc_lo_bit = 0;
-        } else if(((temp_lo ^ (temp_lo>>1)) & 0x555554) == 0x555554) {
-          //correctable
-          n8 addr = 0;
-          for (int i : range(8))
-            if(temp_lo.bit(23 - (i * 2))) addr.bit(7 - i) = 1;
-          n8 bit = 0;
-          for (int i : range(3))
-            if(temp_lo.bit(7 - (i * 2))) bit.bit(2 - i) = 1;
-          error.ecc_lo_addr = (u8)addr;
-          error.ecc_lo_bit = (u8)bit;
-        } else {
-          error.ecc_lo_addr = 0xff;
-          error.ecc_lo_bit = 0xff;
-        }
+        ecc_lo.reset();
+        ecc_hi.reset();
       }
     }
   }
@@ -170,6 +111,8 @@ auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
     error.cardBig =    value.bit(6);
     error.cardSmall =  value.bit(7);
 
+    ecc_lo.reset();
+    ecc_hi.reset();
     error.ecc_lo_addr = 0;
     error.ecc_hi_addr = 0;
     error.ecc_lo_bit = 0;
@@ -178,12 +121,12 @@ auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
   if(address == 1) {
     card.write((u8)data, true, false);
     error.command_clock = 0;
-    if(!error.disableEcc && data == 0) {
+    if(!error.disableEcc && (data == 0x00 || data == 0x80)) {
       error.command_clock = 1;
       error.address_clock = 0;
       error.address = 0;
-      error.ecc_lo_calc = 0;
-      error.ecc_hi_calc = 0;
+      ecc_lo.reset();
+      ecc_hi.reset();
       error.ecc_lo_addr = 0;
       error.ecc_hi_addr = 0;
       error.ecc_lo_bit = 0;
@@ -199,6 +142,32 @@ auto Cartridge::SmartMedia::Drive::write(u32 address, u16 data) -> void {
     }
   }
   if(address == 3) {
+    if(!error.disableEcc && error.command_clock) {
+      if(error.address < 256) {
+        ecc_lo.input(data);
+      }
+
+      if((error.address >= error.cardSmall ? 256+8 : 256)
+      && (error.address <  error.cardSmall ? 512+8 : 512)) {
+        ecc_hi.input(data);
+      }
+
+      if(error.address == 520) data = ecc_hi.eccArea().bit(8,15);
+      if(error.address == 521) data = ecc_hi.eccArea().bit(16,23);
+      if(error.address == 522) data = ecc_hi.eccArea().bit(0,7);
+
+      if(error.address == 525) data = ecc_lo.eccArea().bit(8,15);
+      if(error.address == 526) data = ecc_lo.eccArea().bit(16,23);
+      if(error.address == 527) data = ecc_lo.eccArea().bit(0,7);
+
+      error.address++;
+
+      if(error.address == 528) {
+        error.address = 0;
+        ecc_lo.reset();
+        ecc_hi.reset();
+      }
+    }
     card.write((u8)data, false, false);
   }
   if(address == 4) {
