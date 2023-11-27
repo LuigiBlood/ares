@@ -2,6 +2,21 @@
 #include "drive.cpp"
 #include "error.cpp"
 
+auto Cartridge::SmartMedia::load() -> void {
+  if(self.pak->attribute("sm").boolean()) {
+    self.has.SmartMediaCard = true;
+
+    smartmediaSlot1.load(self.node);
+    smartmediaSlot2.load(self.node);
+
+    debugger.tracer = self.node->append<Node::Debugger::Tracer::Notification>("SmartMedia", "Cartridge");
+    debugger.tracer->setAutoLineBreak(true);
+    debugger.tracer->setTerminal(false);
+    debugger.tracer->setFile(true);
+    debugger.tracer->setPrefix(true);
+  }
+}
+
 auto Cartridge::SmartMedia::unload() -> void {
   smartmediaSlot1.unload();
   smartmediaSlot2.unload();

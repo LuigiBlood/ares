@@ -207,20 +207,3 @@ auto Cartridge::SmartMedia::Drive::power(bool reset) -> void {
   error.ecc_lo_bit = 0;
   error.ecc_hi_bit = 0;
 }
-
-
-//SmartMedia
-auto Cartridge::SmartMedia::load() -> void {
-  if(self.pak->attribute("sm").boolean()) {
-    self.has.SmartMediaCard = true;
-
-    smartmediaSlot1.load(self.node);
-    smartmediaSlot2.load(self.node);
-
-    debugger.tracer = self.node->append<Node::Debugger::Tracer::Notification>("SmartMedia", "Cartridge");
-    debugger.tracer->setAutoLineBreak(true);
-    debugger.tracer->setTerminal(false);
-    debugger.tracer->setFile(true);
-    debugger.tracer->setPrefix(true);
-  }
-}
